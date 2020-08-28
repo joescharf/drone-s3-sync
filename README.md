@@ -10,6 +10,34 @@
 
 Drone plugin to synchronize a directory with an Amazon S3 Bucket. For the usage information and a listing of the available options please take a look at [the docs](http://plugins.drone.io/drone-plugins/drone-s3-sync/).
 
+## Updated build info
+
+- Updated the build .drone.yml based on `josmo/drone-ecs` repo. Can now use drone CLI via `drone exec` to build locally, and will publish to docker on a push to master
+- Set the environment variables as indicated:
+
+  - `DRONE_REPO_OWNER` github username
+  - `DRONE_REPO_NAME` github repository name
+
+- Set drone server secrets:
+
+  - `DOCKER_USERNAME` username on docker hub
+  - `DOCKER_PASSWORD` password on docker hub
+  - `PLUGIN_REPO` docker repository to push to (i.e. joescharf/s3-sync)
+
+- Build locally: `DRONE_REPO_OWNER=joescharf DRONE_REPO_NAME=drone-s3-sync drone exec`
+- Push to master and drone will test, build, and publish to docker
+
+### Debug mode
+
+Add the following to the s3-sync pipeline step
+
+```yaml
+environment:
+  - DEBUG: true
+```
+
+---
+
 ## Build
 
 Build the binary with the following command:

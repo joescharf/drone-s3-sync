@@ -73,7 +73,13 @@ func (p *Plugin) sanitizeInputs() error {
 	p.Target = filepath.Join(p.Target)
 	// We can normalize p.Target, but we still need to strip the leading slash(/)
 	// so that it acts as a prefix for aws.List() and other uses below
+	fmt.Println("Plugin Settings")
 	p.Target = strings.TrimPrefix(p.Target, string(os.PathSeparator))
+	fmt.Println("Bucket                      :", p.Bucket)
+	fmt.Println("Delete?                     :", p.Delete)
+	fmt.Println("File paths (sanitized)")
+	fmt.Println("Source                      :", p.Source)
+	fmt.Println("Target (trimmed for prefix) :", p.Target)
 
 	return nil
 }
