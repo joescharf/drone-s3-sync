@@ -71,11 +71,15 @@ func (p *Plugin) sanitizeInputs() error {
 	}
 	p.Source = filepath.Join(wd, p.Source)
 	p.Target = filepath.Join(p.Target)
+	// We can normalize p.Target, but we still need to strip the leading slash(/)
+	// so that it acts as a prefix for aws.List() and other uses below
+	p.Target = strings.TrimPrefix(p.Target, string(os.PathSeparator))
 
 	return nil
 }
 
 func (p *Plugin) createSyncJobs() {
+	// Note: aws.List() uses path as a prefix, (no leading slash (/))
 	remote, err := p.client.List(p.Target)
 	if err != nil {
 		fmt.Println(err)
@@ -118,18 +122,23 @@ func (p *Plugin) createSyncJobs() {
 		})
 	}
 	if p.Delete {
+		matcher := ""
 		for _, r := range remote {
 			found := false
-			matcher := strings.TrimPrefix(r, p.Target)
+			matcher = strings.TrimPrefix(r, p.Target)
 			matcher = strings.TrimPrefix(matcher, string(os.PathSeparator))
+			debug("Iterating to match Remote files: r: %s, matcher: %s, p.Target: %s", r, matcher, p.Target)
+
 			for _, l := range local {
 				if l == matcher {
+					debug("  FOUND: local: l = %s, matcher= %s ", l, matcher)
 					found = true
 					break
 				}
 			}
 
 			if !found {
+				debug("  NOT FOUND: remote: %s, matcher: %s", r, matcher)
 				p.jobs = append(p.jobs, job{
 					local:  "",
 					remote: r,
@@ -140,11 +149,19 @@ func (p *Plugin) createSyncJobs() {
 	}
 }
 
+// per https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html#invalidation-specifying-objects
+// If we want to invalidate a directory, all of its subdirectories, and all of the files in the directory and subdirectories,
+// we must use /directory-path* vs. /directory-path/*
+// but this doesn't seem to invalidate properly so for now, since its the
+// same price to invalidate the whole distro vs a single path, let's just
+// invalidate everything in the distro
+// https://aws.amazon.com/about-aws/whats-new/2015/05/amazon-cloudfront-makes-it-easier-to-invalidate-multiple-objects/
+
 func (p *Plugin) createInvalidateJob() {
 	if len(p.CloudFrontDistribution) > 0 {
 		p.jobs = append(p.jobs, job{
 			local:  "",
-			remote: filepath.Join(string(os.PathSeparator), p.Target, "*"),
+			remote: "/*",
 			action: "invalidateCloudFront",
 		})
 	}
